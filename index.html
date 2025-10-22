@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GuardianVault v9.2 — Final</title>
+<style>
+  /* ---------- Base + Splash ---------- */
+  :root{--teal:#00bfa5;--deep:#004d40;--violet:#7b4bd2}
+  html,body{margin:0;height:100%;font-family:"Poppins",sans-serif;background:radial-gradient(circle at center,#dffffa 0%,#00bfa5 60%,#004d40 100%);background-size:400% 400%;animation:bgShift 12s ease-in-out infinite;overflow:hidden}
+  @keyframes bgShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  .splash{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:transparent;z-index:50}
+  .glow{position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,0.85) 0%, rgba(0,255,200,0.18) 60%, rgba(0,180,160,0.03) 100%);filter:blur(25px);animation:pulseGlow 3.8s ease-in-out infinite;z-index:-1}
+  @keyframes pulseGlow{0%,100%{transform:scale(0.94);opacity:0.9}50%{transform:scale(1.06);opacity:1}}
+  .logo{position:relative;width:420px;height:260px}
+  .left-wing,.right-wing{position:absolute;width:50%;height:100%;top:0}
+  .left-wing{left:0;transform-origin:right center;animation:flapLeft 5s ease-in-out infinite}
+  .right-wing{right:0;transform-origin:left center;animation:flapRight 5s ease-in-out infinite}
+  @keyframes flapLeft{0%,100%{transform:rotate(10deg) translateY(8px);filter:drop-shadow(0 0 25px rgba(255,255,255,0.95))}50%{transform:rotate(0deg) translateY(0)}}
+  @keyframes flapRight{0%,100%{transform:rotate(-10deg) translateY(8px);filter:drop-shadow(0 0 25px rgba(255,255,255,0.95))}50%{transform:rotate(0deg) translateY(0)}}
+  .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.85);opacity:0;animation:popCenter 1.8s ease-out forwards 1.0s}
+  @keyframes popCenter{0%{opacity:0;transform:translate(-50%,-50%) scale(0.7)}60%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  .handGlow{position:absolute;width:190px;height:190px;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(0,255,200,0.18) 80%);filter:blur(18px);opacity:0;animation:pulseTogether 5s ease-in-out infinite}
+  @keyframes pulseTogether{0%,40%{opacity:0;transform:translate(-50%,-50%) scale(0.85)}50%,100%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
+  .title{margin-top:320px;font-size:44px;font-weight:800;background:linear-gradient(90deg,#004d40,#00bfa5,#a140ff,#00bfa5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shine 3.5s linear infinite}
+  @keyframes shine{0%{background-position:-200%}100%{background-position:200%}}
+  .sub{color:#002d26;font-size:15px;opacity:0.95;margin-top:8px;letter-spacing:0.5px}
+
+  /* ---------- App layout ---------- */
+  .app{position:absolute;inset:0;display:none;background:linear-gradient(180deg, rgba(0,96,84,0.02), rgba(0,77,64,0.01));color:#002d26;overflow:hidden;z-index:10}
+  header.bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:12px;background:rgba(255,255,255,0.02);backdrop-filter:blur(4px)}
+  .go-back{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(0,191,165,0.12);cursor:pointer;font-weight:700;color:#004d40}
+  .app-title{font-weight:800;font-size:18px}
+  .muted{font-size:13px;color:#014d3f;opacity:0.9}
+  .page{position:absolute;inset:56px 0 0 0;overflow:auto;padding:18px;display:none}
+  .page.active{display:block;animation:fadeIn 260ms ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .field{padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);font-size:15px}
+  .bigbtn{padding:12px 16px;border-radius:12px;background:linear-gradient(90deg,#00bfa5,#00796b);color:white;border:none;font-weight:800;cursor:pointer}
+
+  /* ---------- Scanners ---------- */
+  .scanner{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 140px)}
+  .camera-frame{flex:1;border-radius:16px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;touch-action:none;background:#050a09}
+  video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);transition:filter 420ms ease}
+  .scan-window{position:absolute;width:78%;height:70%;border-radius:12px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .scan-vignette{position:absolute;inset:0;background:radial-gradient(circle at center, rgba(0,0,0,0)45%, rgba(0,0,0,0.55)100%);pointer-events:none}
+  .sr-status{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+
+  /* Product scanner visuals */
+  .product-scan video{filter:none}
+  .product-scan .scan-window{border:4px solid rgba(0,191,165,0.12);box-shadow:0 0 48px rgba(0,191,165,0.06) inset, 0 18px 40px rgba(0,0,0,0.12)}
+  .product-scan .scan-window::before{content:"";position:absolute;left:-40%;top:50%;width:120%;height:3px;background:linear-gradient(90deg,transparent,rgba(0,255,210,0.24),transparent);transform:translateY(-50%);animation:scanBar 2s linear infinite}
+  @keyframes scanBar{0%{left:-40%}100%{left:140%}}
+  .product-scan .camera-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,127,110,0.02),transparent);pointer-events:none;mix-blend-mode:screen}
+
+  /* Bill scanner visuals */
+  .bill-scan video{filter:hue-rotate(210deg) saturate(0.9) brightness(0.95)}
+  .bill-scan .scan-window{border:4px solid rgba(123,75,210,0.12);box-shadow:0 0 48px rgba(123,75,210,0.06) inset, 0 18px 40px rgba(0,0,0,0.12)}
+  .bill-scan .scan-window::after{content:"";position:absolute;inset:0;border-radius:12px;box-shadow:0 0 60px rgba(123,75,210,0.06) inset;animation:rotShimmer 8s linear infinite}
+  @keyframes rotShimmer{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+  .bill-scan .camera-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(120,80,220,0.03),transparent);pointer-events:none;mix-blend-mode:screen}
+
+  /* corner dots (hidden by default) */
+  .page-corner-dots{position:fixed;right:18px;bottom:18px;display:none;gap:8px;align-items:center;pointer-events:auto;z-index:60}
+  .corner-dot{width:36px;height:36px;border-radius:50%;opacity:0.12;border:1px solid rgba(255,255,255,0.02);cursor:pointer}
+  .corner-dot.green{background:var(--teal)}
+  .corner-dot.white{background:#ffffff}
+  .corner-dot.yellow{background:#ffd54f}
+
+  /* Fingerprint overlay */
+  .fp-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(1,50,44,0.45);z-index:200}
+  .fp-card{width:320px;max-width:90%;background:rgba(255,255,255,0.02);border-radius:12px;padding:28px;text-align:center;backdrop-filter:blur(6px);box-shadow:0 18px 40px rgba(0,0,0,0.35)}
+  .fp-pulse{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at center, rgba(0,191,165,0.12), rgba(0,121,107,0.08));display:inline-block;box-shadow:0 6px 30px rgba(0,0,0,0.12);position:relative}
+  .fp-pulse::after{content:"";position:absolute;inset:14px;border-radius:50%;box-shadow:0 0 24px rgba(0,191,165,0.12);transform:scale(1);animation:fpGlow 1600ms ease-in-out infinite}
+  @keyframes fpGlow{0%{transform:scale(1);opacity:0.9}50%{transform:scale(1.07);opacity:1}100%{transform:scale(1);opacity:0.9}}
+  .fp-note{margin-top:12px;color:rgba(255,255,255,0.92);font-weight:700}
+
+  /* white redirect + G pulse */
+  .white-redirect{position:fixed;inset:0;background:#fff;display:none;z-index:210;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+  .g-pulse{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}
+  .g-seg{position:absolute;width:36px;height:36px;border-radius:50%;opacity:0.95}
+  .g-r{background:#DB4437;left:6px;top:6px}
+  .g-g{background:#0F9D58;right:6px;bottom:6px}
+  .g-b{background:#4285F4;left:6px;bottom:6px}
+  .g-y{background:#F4B400;right:6px;top:6px}
+  @keyframes gpulse{0%{transform:scale(0.92);opacity:0.9}50%{transform:scale(1.08);opacity:1}100%{transform:scale(0.92);opacity:0.9}}
+  .g-pulse{animation:gpulse 1200ms ease-in-out infinite}
+
+  /* qr + payment + dashboard styles (kept compact) */
+  .qr-screen{position:fixed;inset:56px 16px 16px 16px;border-radius:12px;display:none;align-items:center;justify-content:center;z-index:180;background:linear-gradient(180deg,#e6fbff,#c7f5ff)}
+  .qr-box{width:320px;height:320px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(0,0,0,0.12);position:relative}
+  .qr-fake{width:220px;height:220px;background:repeating-linear-gradient(0deg,#000 0 8px, #fff 8px 16px);opacity:0.12;border-radius:6px}
+  .qr-text{margin-top:12px;font-weight:800;color:#004d40}
+
+  .payment-screen{position:fixed;inset:56px 16px 16px 16px;border-radius:12px;display:none;align-items:center;justify-content:center;z-index:150}
+  .payment-pulse{position:absolute;inset:0;border-radius:12px;background:radial-gradient(circle at center, rgba(120,75,210,0.06), rgba(120,75,210,0.08));animation:paymentPulse 2200ms ease-in-out infinite}
+  @keyframes paymentPulse{0%{transform:scale(0.99);opacity:0.9}50%{transform:scale(1.05);opacity:1}100%{transform:scale(0.99);opacity:0.9}}
+  .payment-card{position:relative;z-index:2;background:white;padding:18px;border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,0.12);width:340px;max-width:92%}
+  .payment-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .tick{font-size:120px;color:#00bfa5;transform:scale(0);opacity:0;transition:all 320ms cubic-bezier(.2,.9,.3,1)}
+  .tick.visible{transform:scale(1);opacity:1}
+
+  /* dashboard */
+  canvas.chart{background:white;border-radius:12px;width:100%;max-width:680px;box-shadow:0 10px 30px rgba(0,0,0,0.06);display:block}
+  .category-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
+  .balance{font-weight:800}
+  .alert{background:#ffebee;border-left:6px solid #f44336;padding:8px;border-radius:6px;color:#b71c1c;margin-top:8px}
+
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:200}
+  .modal{background:white;padding:18px;border-radius:12px;min-width:300px;box-shadow:0 18px 40px rgba(0,0,0,0.2)}
+  .modal label{display:block;margin-bottom:6px}
+  .modal input[type="date"], .modal textarea{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);width:100%}
+  .modal textarea{min-height:80px;resize:vertical}
+  .modal .row{margin-top:12px;display:flex;justify-content:flex-end;gap:8px}
+  .modal .smallbtn{padding:8px 10px;border-radius:8px;border:0;background:#00bfa5;color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+
+  <!-- SPLASH -->
+  <div id="splashRoot" class="splash" role="region" aria-label="Splash screen">
+    <div class="glow"></div>
+    <div class="logo" aria-hidden="true">
+      <svg class="left-wing" viewBox="0 0 100 100"><path d="M100,60 C60,10 35,35 0,60 C40,80 60,95 100,60Z" fill="white"/><path d="M90,60 C55,20 40,40 5,60 C40,75 55,90 90,60Z" fill="rgba(255,255,255,0.75)"/><path d="M80,60 C50,30 40,45 10,60 C40,70 50,85 80,60Z" fill="rgba(255,255,255,0.5)"/></svg>
+      <svg class="right-wing" viewBox="0 0 100 100"><path d="M0,60 C40,10 65,35 100,60 C60,80 40,95 0,60Z" fill="white"/><path d="M10,60 C45,20 60,40 95,60 C60,75 45,90 10,60Z" fill="rgba(255,255,255,0.75)"/><path d="M20,60 C50,30 60,45 90,60 C60,70 50,85 20,60Z" fill="rgba(255,255,255,0.5)"/></svg>
+      <svg class="center" viewBox="0 0 120 120"><circle cx="60" cy="60" r="40" fill="#f4fffd" stroke="#00bfa5" stroke-width="3"/><g fill="#002d26"><circle cx="42" cy="50" r="5"/><rect x="39" y="55" width="6" height="22" rx="2"/><circle cx="60" cy="47" r="5"/><rect x="57" y="52" width="6" height="25" rx="2"/><circle cx="78" cy="50" r="5"/><rect x="75" y="55" width="6" height="22" rx="2"/><path class="arms" d="M45 60 Q60 80 75 60"/></g></svg>
+      <div class="handGlow"></div>
+    </div>
+    <div class="title">GuardianVault</div>
+    <div class="sub">Pre-Payment Assistant</div>
+  </div>
+
+  <!-- APP -->
+  <div id="appRoot" class="app" aria-hidden="true">
+    <header class="bar" role="banner">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="btnGoBack" class="go-back" style="display:none">← Go Back</div>
+        <div>
+          <div class="app-title">GuardianVault</div>
+          <div class="muted" id="headerSubtitle">Pre-Payment Assistant</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center"></div>
+    </header>
+
+    <!-- LOGIN -->
+    <main id="page-login" class="page active" role="main">
+      <section style="max-width:720px;margin:18px auto">
+        <h2>Login</h2>
+        <p class="muted">Enter username, password, and UPI then choose a mode.</p>
+        <div style="margin-top:12px">
+          <input id="inpName" class="field" placeholder="Your name (optional)" />
+          <input id="inpPassword" type="password" class="field" placeholder="Password" style="margin-top:8px" />
+          <input id="inpUpi" class="field" placeholder="merchant@upi" style="margin-top:8px" />
+        </div>
+        <div style="margin-top:12px;display:flex;gap:12px">
+          <button id="btnBlind" class="bigbtn" style="flex:1">Blind User</button>
+          <button id="btnNormal" class="bigbtn" style="flex:1">Normal User</button>
+        </div>
+        <div style="margin-top:12px" class="muted">Tip: Blind mode uses gestures & voice. Double-tap on right side to finalize the cart.</div>
+      </section>
+    </main>
+
+    <!-- PRODUCT SCANNER -->
+    <section id="page-scanner" class="page" role="region" aria-live="polite">
+      <div id="scannerRoot" class="scanner product-scan" style="max-width:980px;margin:0 auto">
+        <div id="cameraFrame" class="camera-frame" tabindex="0" aria-label="Product scanner area">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <div class="scan-window" aria-hidden="true"></div>
+          <div class="camera-overlay" aria-hidden="true"></div>
+          <div class="scan-vignette" aria-hidden="true"></div>
+          <div id="srStatus" class="sr-status" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BILL SCANNER -->
+    <section id="page-billscan" class="page" role="region" aria-live="polite" style="display:none">
+      <div id="billRoot" class="scanner bill-scan" style="max-width:980px;margin:0 auto">
+        <div id="cameraFrameBill" class="camera-frame" tabindex="0" aria-label="Bill scanner area">
+          <video id="cameraVideoBill" autoplay playsinline muted></video>
+          <div class="scan-window" aria-hidden="true"></div>
+          <div class="camera-overlay" aria-hidden="true"></div>
+          <div class="scan-vignette" aria-hidden="true"></div>
+          <div id="srStatusBill" class="sr-status" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fingerprint Popup #1 -->
+    <div id="fpOverlay" class="fp-overlay" aria-hidden="true">
+      <div class="fp-card">
+        <div class="fp-pulse" id="fpPulse"></div>
+        <div class="fp-note" id="fpNote">Long press to authenticate fingerprint</div>
+      </div>
+    </div>
+
+    <!-- White redirect (G pulse) -->
+    <div id="whiteRedirect" class="white-redirect" aria-hidden="true">
+      <div class="g-pulse" aria-hidden="true"><div class="g-seg g-r"></div><div class="g-seg g-g"></div><div class="g-seg g-b"></div><div class="g-seg g-y"></div></div>
+      <div id="whiteText" style="font-weight:700;color:#004d40">Redirecting to Google Pay app...</div>
+    </div>
+
+    <!-- Merchant QR -->
+    <div id="qrScreen" class="qr-screen" aria-hidden="true">
+      <div class="qr-box"><div class="qr-fake" aria-hidden="true"></div></div>
+      <div class="qr-text" id="qrText">Scanning merchant QR code...</div>
+    </div>
+
+    <!-- GPay Payment -->
+    <div id="paymentScreen" class="payment-screen" aria-hidden="true">
+      <div class="payment-pulse" aria-hidden="true"></div>
+      <div class="payment-card" role="dialog" aria-modal="true" aria-hidden="false">
+        <div style="font-weight:900">Google Pay</div>
+        <div style="margin-top:8px" class="payment-row"><div>Merchant</div><div id="gMerchant">—</div></div>
+        <div style="margin-top:8px" class="payment-row"><div>UPI ID</div><div id="gUpi">—</div></div>
+        <div style="margin-top:8px" class="payment-row"><div>Amount</div><div id="gAmount">₹0</div></div>
+        <div style="margin-top:12px;color:#00796b;font-weight:700" id="gPayNote">Hold to pay using fingerprint</div>
+        <div style="margin-top:18px"><div id="paymentTick" class="tick">✓</div></div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page" role="region" style="display:none">
+      <div style="max-width:1100px;margin:18px auto">
+        <h2>Dashboard</h2>
+        <div class="muted">Visual finance summary (persistent)</div>
+
+        <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;align-items:flex-start">
+          <div style="flex:1 1 620px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:800">30-day Expense Trend</div>
+              <div>
+                <button id="btnAddMoney" class="bigbtn" style="background:#fff;color:#004d40;border:1px solid rgba(0,0,0,0.06)">Add Money</button>
+                <button id="btnSetReminder" class="bigbtn" style="background:#fff;color:#004d40;border:1px solid rgba(0,0,0,0.06)">Set Reminder</button>
+              </div>
+            </div>
+            <canvas id="lineChart" class="chart" width="680" height="220"></canvas>
+            <div id="alertsContainer"></div>
+          </div>
+
+          <div style="width:360px">
+            <div style="font-weight:800;display:flex;justify-content:space-between;align-items:center">
+              <div>Expense Breakdown</div>
+              <div class="muted-small">Category balances</div>
+            </div>
+            <canvas id="pieChart" class="chart" width="320" height="220"></canvas>
+
+            <div style="margin-top:8px;background:#fff;padding:10px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.04)">
+              <div style="font-weight:800">Category Balances</div>
+              <div id="categoriesList"></div>
+              <div style="margin-top:12px"><strong>Reminders:</strong><div id="remindersList"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- subtle corner dots -->
+  <div id="dotsWrap" class="page-corner-dots" aria-hidden="true">
+    <div id="dotG1" class="corner-dot green"></div>
+    <div id="dotG2" class="corner-dot green"></div>
+    <div id="dotG3" class="corner-dot green"></div>
+    <div id="dotWhite" class="corner-dot white"></div>
+    <div id="dotYellow" class="corner-dot yellow"></div>
+  </div>
+
+  <!-- Reminders modal -->
+  <div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Set reminder">
+      <label for="reminderDate">Choose reminder date</label>
+      <input id="reminderDate" type="date" />
+      <label for="reminderText" style="margin-top:10px">Reminder text</label>
+      <textarea id="reminderText" placeholder="What should I remind you about?"></textarea>
+      <div class="row">
+        <button id="reminderCancel" class="smallbtn" style="background:#ccc;color:#002d26;padding:8px 10px;border-radius:8px">Cancel</button>
+        <button id="reminderSave" class="smallbtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ============================
+   Reliable TTS intro + unified speak
+   ============================ */
+const TTS = (() => {
+  let voice = null;
+  function chooseVoices(){
+    const vs = speechSynthesis.getVoices();
+    voice = vs.find(v => /samantha|google us|susan|female/i.test(v.name)) || vs.find(v => /female|woman/i.test(v.name)) || vs[0] || null;
+  }
+  speechSynthesis.onvoiceschanged = chooseVoices;
+  chooseVoices();
+  function speak(text, opts={}) {
+    if(!text) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = opts.lang || 'en-US';
+      u.rate = opts.rate || 0.95;
+      u.pitch = opts.pitch || 1.1;
+      if(voice) u.voice = voice;
+      speechSynthesis.speak(u);
+      return u;
+    } catch(e){ console.warn('TTS error', e); }
+  }
+  return { speak };
+})();
+
+/* Play intro fully once voices available, then show app */
+let introPlayed = false;
+function playIntroThenShowApp(){
+  if(introPlayed) return;
+  const voicesReady = speechSynthesis.getVoices && speechSynthesis.getVoices().length > 0;
+  const introText = "Welcome to GuardianVault, your trusted pre-payment assistant.";
+  if(voicesReady){
+    const u = TTS.speak(introText);
+    if(u){
+      u.onend = () => { introPlayed = true; revealAppAfterIntro(); };
+      u.onerror = () => { introPlayed = true; revealAppAfterIntro(); };
+    } else {
+      // fallback show after small delay
+      introPlayed = true; setTimeout(revealAppAfterIntro, 700);
+    }
+  } else {
+    // retry until voices appear, with fallback timeout
+    const retry = setInterval(() => {
+      if(speechSynthesis.getVoices().length > 0){
+        clearInterval(retry);
+        const u = TTS.speak(introText);
+        if(u){ u.onend = ()=>{ introPlayed=true; revealAppAfterIntro(); }; u.onerror = ()=>{ introPlayed=true; revealAppAfterIntro(); } }
+        else { introPlayed=true; revealAppAfterIntro(); }
+      }
+    }, 200);
+    // fallback after 5s so splash doesn't hang forever
+    setTimeout(()=> { if(!introPlayed){ introPlayed=true; revealAppAfterIntro(); clearInterval(retry);} }, 5000);
+  }
+}
+function revealAppAfterIntro(){
+  const s = document.getElementById('splashRoot');
+  s.style.transition = 'opacity 420ms ease';
+  s.style.opacity = 0;
+  setTimeout(()=> { s.style.display='none'; document.getElementById('appRoot').style.display='block'; setDotsVisible(false); TTS.speak('Enter username, password, and UPI, then choose blind or normal user.'); }, 480);
+}
+window.addEventListener('load', ()=> { setTimeout(playIntroThenShowApp, 120); });
+
+/* ============================
+   Audio SFX + vibration
+   ============================ */
+const AudioSFX = (() => {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  function beep(freq=900,dur=0.06,vol=0.06){ const o=ctx.createOscillator(); const g=ctx.createGain(); o.type='sine'; o.frequency.value=freq; g.gain.value=vol; o.connect(g); g.connect(ctx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur); o.stop(ctx.currentTime + dur + 0.02); }
+  function chime(){ beep(660,0.12,0.06); setTimeout(()=>beep(880,0.12,0.04),120); }
+  return { beep, chime };
+})();
+let vibeOn = true;
+function vibrate(p){ if(vibeOn && navigator.vibrate) navigator.vibrate(p); }
+
+/* ============================
+   Pages, nav, and dots visibility
+   ============================ */
+const pages = {
+  login: document.getElementById('page-login'),
+  scanner: document.getElementById('page-scanner'),
+  billscan: document.getElementById('page-billscan'),
+  dashboard: document.getElementById('page-dashboard')
+};
+let navStack = [];
+function showPage(name, push=true){
+  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+  if(pages[name]) pages[name].style.display='block';
+  document.getElementById('headerSubtitle').innerText = name === 'scanner' ? 'Scanner — Blind Mode' : name === 'billscan' ? 'Bill Scan' : name === 'dashboard' ? 'Dashboard' : 'Login';
+  if(push){ const top = navStack[navStack.length-1]; if(top !== name) navStack.push(name); }
+  document.getElementById('btnGoBack').style.display = (name === 'login') ? 'none' : 'inline-flex';
+
+  // set dots visibility
+  if(name === 'scanner'){ setDotsVisible(true); setDotsForStage('product'); TTS.speak('Product scanner ready. Tap to scan item. Swipe up to add to cart. Swipe down to remove. Double-tap right side to finalize.'); startCamera(); initScanner(); }
+  else if(name === 'billscan'){ setDotsVisible(true); setDotsForStage('bill'); TTS.speak('Bill scanner ready. Please scan your bill to compare.'); startCamera(); }
+  else { setDotsVisible(false); if(name==='dashboard'){ TTS.speak('Welcome back. Displaying your finance summary.'); renderCategories(); renderCharts(); renderRemindersList(); } }
+}
+document.getElementById('btnGoBack').addEventListener('click', ()=>{
+  navStack.pop(); const prev = navStack.pop() || 'login';
+  TTS.speak('Returning to the previous screen.');
+  showPage(prev, true);
+});
+
+/* Login buttons */
+document.getElementById('btnBlind').addEventListener('click', ()=>{
+  sessionStorage.setItem('gv_name', document.getElementById('inpName').value || 'Blind User');
+  sessionStorage.setItem('gv_upi', document.getElementById('inpUpi').value || 'merchant@upi');
+  TTS.speak('Blind mode selected. Opening scanner.');
+  showPage('scanner');
+});
+document.getElementById('btnNormal').addEventListener('click', ()=>{
+  sessionStorage.setItem('gv_name', document.getElementById('inpName').value || 'User');
+  sessionStorage.setItem('gv_upi', document.getElementById('inpUpi').value || 'merchant@upi');
+  TTS.speak('Normal mode selected. Opening dashboard.');
+  showPage('dashboard');
+});
+
+/* ============================
+   Dots control
+   ============================ */
+const dotsWrap = document.getElementById('dotsWrap');
+const dotG1 = document.getElementById('dotG1');
+const dotG2 = document.getElementById('dotG2');
+const dotG3 = document.getElementById('dotG3');
+const dotWhite = document.getElementById('dotWhite');
+const dotYellow = document.getElementById('dotYellow');
+
+function setDotsVisible(v){
+  dotsWrap.style.display = v ? 'flex' : 'none';
+}
+function setDotsForStage(stage){
+  // stage: 'product' or 'bill'
+  if(stage === 'product'){
+    dotG1.style.display = dotG2.style.display = dotG3.style.display = 'block';
+    dotWhite.style.display = dotYellow.style.display = 'block';
+  } else {
+    // bill: hide green ones
+    dotG1.style.display = dotG2.style.display = dotG3.style.display = 'none';
+    dotWhite.style.display = dotYellow.style.display = 'block';
+  }
+}
+
+/* corner dots TTS interactions (greens announce items) */
+dotG1.addEventListener('click', ()=> TTS.speak('Colgate scanned. Thirty rupees. Swipe up to add to cart.'));
+dotG2.addEventListener('click', ()=> TTS.speak('Vim Bar scanned. Ten rupees. Swipe up to add to cart.'));
+dotG3.addEventListener('click', ()=> TTS.speak('Chandrika soap scanned. Ten rupees. Swipe up to add to cart.'));
+
+/* ============================
+   Camera stream (shared)
+   ============================ */
+const videoEl = document.getElementById('cameraVideo');
+const videoBillEl = document.getElementById('cameraVideoBill');
+let cameraStream = null;
+async function startCamera(){
+  if(cameraStream) return;
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio:false });
+    videoEl.srcObject = cameraStream;
+    videoBillEl.srcObject = cameraStream;
+    await Promise.all([videoEl.play().catch(()=>{}), videoBillEl.play().catch(()=>{})]);
+  } catch(e){
+    console.warn('camera unavailable', e);
+    TTS.speak('Camera unavailable. Running scanner in mock mode.');
+    videoEl.style.background = 'linear-gradient(180deg,#07332a,#021f1a)';
+    videoBillEl.style.background = 'linear-gradient(180deg,#1b073a,#0b021a)';
+  }
+}
+function stopCamera(){ if(!cameraStream) return; cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; }
+
+/* ============================
+   Items, cart, and TTS flow
+   ============================ */
+const ITEMS = [{id:'colgate',name:'Colgate',price:30},{id:'vim',name:'Vim Bar',price:10},{id:'chandrika',name:'Chandrika Soap',price:10}];
+let cycleIndex=0,lastScanned=null,cart=[];
+
+function singleTapScan(){
+  const item = ITEMS[cycleIndex % ITEMS.length];
+  cycleIndex++;
+  lastScanned = item;
+  TTS.speak(`${item.name} scanned. ${item.price} rupees. Swipe up to add to cart.`);
+  document.getElementById('srStatus').innerText = `${item.name} scanned. Swipe up to add.`;
+}
+function addLastScannedToCart(){
+  if(!lastScanned){ TTS.speak('No scanned item. Tap to scan.'); return; }
+  cart.push(lastScanned);
+  lastScanned = null;
+  AudioSFX.beep(900,0.06,0.06); vibrate(12);
+  TTS.speak(`Added to cart. Cart total ${cartTotal()} rupees.`);
+  document.getElementById('srStatus').innerText = `Added to cart. Total ${cartTotal()}`;
+}
+function removeLastFromCart(){
+  if(cart.length===0){ TTS.speak('Cart is empty.'); return; }
+  cart.pop();
+  AudioSFX.beep(420,0.06,0.05); vibrate([20]);
+  TTS.speak(`Item removed. Cart total ${cartTotal()} rupees.`);
+  document.getElementById('srStatus').innerText = `Item removed. Total ${cartTotal()}`;
+}
+function cartTotal(){ return cart.reduce((s,i)=>s+i.price,0); }
+
+/* ============================
+   Gesture handling for product scanner
+   ============================ */
+const cameraFrame = document.getElementById('cameraFrame');
+let touchStartY=null,touchStartX=null,lastTap=0;
+function initScanner(){
+  // ensure product visuals active
+  document.getElementById('scannerRoot').classList.add('product-scan');
+  document.getElementById('billRoot').classList.remove('bill-scan');
+
+  cameraFrame.ontouchstart=null; cameraFrame.ontouchend=null;
+  cameraFrame.addEventListener('touchstart', e=>{ const p=e.touches[0]; touchStartY=p.clientY; touchStartX=p.clientX; }, {passive:true});
+  cameraFrame.addEventListener('touchend', e=>{
+    const p=(e.changedTouches&&e.changedTouches[0])||{};
+    const dy=(p.clientY||0)-(touchStartY||0), dx=(p.clientX||0)-(touchStartX||0);
+    const now=Date.now();
+    if(Math.abs(dy)>60 && Math.abs(dy)>Math.abs(dx)){ if(dy<0) addLastScannedToCart(); else removeLastFromCart(); return; }
+    if(now - lastTap < 350){
+      const x = p.clientX || touchStartX || window.innerWidth*0.9;
+      if(x > window.innerWidth * 0.6) finalizeCartDoubleTap(); else TTS.speak('Double-tap detected. Use right side to finalize.');
+      lastTap = 0; return;
+    }
+    singleTapScan(); lastTap = now;
+  }, {passive:true});
+
+  // desktop fallback
+  let mouseDownX=null, mouseDownY=null;
+  cameraFrame.addEventListener('mousedown', e=>{ mouseDownX=e.clientX; mouseDownY=e.clientY; });
+  window.addEventListener('mouseup', e=>{
+    const dy = e.clientY - (mouseDownY||0), dx = e.clientX - (mouseDownX||0);
+    const now = Date.now();
+    if(Math.abs(dy)>60 && Math.abs(dy)>Math.abs(dx)){ if(dy<0) addLastScannedToCart(); else removeLastFromCart(); return; }
+    if(now - lastTap < 350){
+      if((mouseDownX||0) > window.innerWidth*0.6) finalizeCartDoubleTap(); else TTS.speak('Double-click detected. Use right side to finalize.');
+      lastTap = 0; return;
+    }
+    singleTapScan(); lastTap = now;
+  });
+}
+
+/* finalize cart -> transition to bill scanner */
+function finalizeCartDoubleTap(){
+  const total = cartTotal();
+  if(total === 50){
+    TTS.speak('Cart finalized. Total bill is fifty rupees. Proceed to bill scanning.');
+    setTimeout(()=> {
+      showPage('billscan');
+      // visuals swap
+      document.getElementById('scannerRoot').classList.remove('product-scan');
+      document.getElementById('billRoot').classList.add('bill-scan');
+      setDotsForStage('bill');
+      TTS.speak('Bill scanner ready. Please scan the bill to compare.');
+    }, 480);
+  } else {
+    TTS.speak(`Cart total is ${total} rupees. You need fifty rupees to finalize.`);
+  }
+}
+
+/* ============================
+   Dot actions for bill scanning
+   ============================ */
+dotWhite.addEventListener('click', ()=>{
+  if(document.getElementById('page-billscan').style.display === 'block'){
+    if(cartTotal() === 50){
+      TTS.speak('Bill scanned. Bill matches the cart bill. Proceeding to fingerprint authentication.');
+      setTimeout(()=> showFingerprintPopup1(), 700);
+    } else { TTS.speak('Cart does not total fifty rupees. Cannot compare bill.'); }
+  } else TTS.speak('This control is used in bill scanning.');
+});
+dotYellow.addEventListener('click', ()=>{
+  if(document.getElementById('page-billscan').style.display === 'block'){
+    TTS.speak('Bill mismatch. Payment cancelled. Please recheck scanned items.');
+    cart=[]; lastScanned=null; cycleIndex=0; document.getElementById('srStatus').innerText='';
+    setTimeout(()=> showPage('scanner'), 600);
+  } else TTS.speak('This control is used in bill scanning.');
+});
+
+/* ============================
+   Fingerprint popup #1 -> white redirect -> QR -> payment
+   ============================ */
+const fpOverlay = document.getElementById('fpOverlay');
+const whiteRedirect = document.getElementById('whiteRedirect');
+const qrScreen = document.getElementById('qrScreen');
+const qrText = document.getElementById('qrText');
+
+function showFingerprintPopup1(){
+  fpOverlay.style.display='flex'; fpOverlay.setAttribute('aria-hidden','false');
+  const card = fpOverlay.querySelector('.fp-card'); let t=null;
+  function down(e){
+    e.preventDefault();
+    TTS.speak('Hold to authenticate with fingerprint.');
+    t = setTimeout(()=> {
+      TTS.speak('Fingerprint verified. Redirecting to Google Pay app.');
+      hideFingerprintPopup1();
+      setTimeout(()=> showWhiteRedirect(), 260);
+    }, 900);
+  }
+  function up(){ if(t){ clearTimeout(t); t=null; TTS.speak('Authentication cancelled.'); } }
+  card.addEventListener('pointerdown', down);
+  card.addEventListener('pointerup', up);
+  card.addEventListener('pointercancel', up);
+  fpOverlay._cleanup = ()=>{ card.removeEventListener('pointerdown', down); card.removeEventListener('pointerup', up); card.removeEventListener('pointercancel', up); };
+}
+function hideFingerprintPopup1(){ if(fpOverlay._cleanup) fpOverlay._cleanup(); fpOverlay.style.display='none'; fpOverlay.setAttribute('aria-hidden','true'); }
+
+function showWhiteRedirect(){
+  whiteRedirect.style.display='flex'; whiteRedirect.setAttribute('aria-hidden','false');
+  TTS.speak('Redirecting to Google Pay app.');
+  setTimeout(()=> { whiteRedirect.style.display='none'; showQRScanner(); }, 1400);
+}
+
+/* QR scanner simulation */
+function showQRScanner(){
+  qrScreen.style.display='flex'; qrScreen.setAttribute('aria-hidden','false');
+  qrText.innerText='Scanning merchant QR code...';
+  TTS.speak('Opening Google Pay. Please scan the merchant QR code.');
+  setTimeout(()=> {
+    const merchant = {name:'V-Mart Superstore', upi:'vmart@upi'};
+    qrText.innerText = `Merchant: ${merchant.name}, UPI: ${merchant.upi}`;
+    TTS.speak(`Merchant ${merchant.name}, UPI ID ${merchant.upi}. Proceeding to payment.`);
+    setTimeout(()=> { qrScreen.style.display='none'; showPaymentScreen(merchant); }, 900);
+  }, 1800);
+}
+
+/* ============================
+   GPay payment screen (fingerprint #2)
+   ============================ */
+const paymentScreen = document.getElementById('paymentScreen');
+const paymentTick = document.getElementById('paymentTick');
+const gMerchantEl = document.getElementById('gMerchant');
+const gUpiEl = document.getElementById('gUpi');
+const gAmountEl = document.getElementById('gAmount');
+
+function showPaymentScreen(merchant){
+  gMerchantEl.innerText = merchant.name; gUpiEl.innerText = merchant.upi; gAmountEl.innerText = '₹' + cartTotal();
+  paymentScreen.style.display='flex'; paymentScreen.setAttribute('aria-hidden','false');
+  TTS.speak('Authenticating payment. Hold your finger to pay fifty rupees.');
+  let t=null;
+  function down(e){
+    e.preventDefault();
+    TTS.speak('Hold to pay.');
+    t = setTimeout(()=> {
+      TTS.speak('Fingerprint verified. Payment successful. Returning to home page.');
+      AudioSFX.chime(); vibrate([60]);
+      setTimeout(()=> {
+        paymentTick.classList.add('visible');
+        setTimeout(()=> {
+          paymentTick.classList.remove('visible');
+          paymentScreen.style.display='none';
+          paymentScreen.setAttribute('aria-hidden','true');
+          showWhiteRedirectFinal();
+        }, 2000);
+      }, 900);
+    }, 1000);
+  }
+  function up(){ if(t){ clearTimeout(t); t=null; TTS.speak('Authentication cancelled.'); } }
+  paymentScreen.addEventListener('pointerdown', down);
+  paymentScreen.addEventListener('pointerup', up);
+  paymentScreen._cleanup = ()=> { paymentScreen.removeEventListener('pointerdown', down); paymentScreen.removeEventListener('pointerup', up); };
+}
+
+/* final white fade and return to login */
+function showWhiteRedirectFinal(){
+  document.getElementById('whiteText').innerText = 'Payment successful. Returning to home page...';
+  whiteRedirect.style.display='flex'; whiteRedirect.setAttribute('aria-hidden','false');
+  TTS.speak('Payment successful. Returning to home page.');
+  setTimeout(()=> {
+    whiteRedirect.style.display='none';
+    cart=[]; lastScanned=null; cycleIndex=0; document.getElementById('srStatus').innerText='';
+    showPage('login');
+  }, 1600);
+}
+
+/* ============================
+   Dashboard data, charts, reminders (persistent)
+   ============================ */
+const DEFAULT_CATS = [{id:'groceries',name:'Groceries',balance:200},{id:'bills',name:'Bills',balance:120},{id:'essentials',name:'Essentials',balance:80},{id:'entertainment',name:'Entertainment',balance:60}];
+function loadCats(){ const raw=localStorage.getItem('gv_cats_v92'); if(!raw){ localStorage.setItem('gv_cats_v92', JSON.stringify(DEFAULT_CATS)); return DEFAULT_CATS.slice(); } try{ return JSON.parse(raw);}catch(e){return DEFAULT_CATS.slice();} }
+function saveCats(arr){ localStorage.setItem('gv_cats_v92', JSON.stringify(arr)); }
+let categories = loadCats();
+
+function renderCategories(){ categories = loadCats(); const list=document.getElementById('categoriesList'); list.innerHTML=''; categories.forEach(c=>{ const r=document.createElement('div'); r.className='category-row'; r.innerHTML=`<div>${c.name}</div><div class="balance">₹${c.balance}</div>`; list.appendChild(r); }); checkAlerts(); renderCharts(); }
+function checkAlerts(){ const container=document.getElementById('alertsContainer'); container.innerHTML=''; categories.forEach(c=>{ if(c.balance>500){ const a=document.createElement('div'); a.className='alert'; a.innerText=`Alert: ${c.name} exceeded ₹500 (₹${c.balance})`; container.appendChild(a); TTS.speak(`Warning: ${c.name} exceeded five hundred rupees.`); } }); }
+function renderCharts(){
+  const line=document.getElementById('lineChart'); const ctx=line.getContext('2d');
+  const days=30, base=420;
+  const data=Array.from({length:days},(_,i)=>Math.max(40, base + Math.round(Math.sin(i/3)*60 + Math.random()*90 - 40) + (Math.random()>0.94?Math.round(Math.random()*420):0)));
+  ctx.clearRect(0,0,line.width,line.height); ctx.fillStyle='#fff'; ctx.fillRect(0,0,line.width,line.height);
+  ctx.strokeStyle='rgba(0,0,0,0.04)'; ctx.lineWidth=1; for(let i=0;i<=4;i++){ const y=10+(i*(line.height-20)/4); ctx.beginPath(); ctx.moveTo(10,y); ctx.lineTo(line.width-10,y); ctx.stroke(); }
+  ctx.beginPath(); for(let i=0;i<data.length;i++){ const x=10 + (i*(line.width-20)/(data.length-1)); const y=10 + (1 - (data[i]-Math.min(...data))/(Math.max(...data)-Math.min(...data)||1))*(line.height-20); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  ctx.strokeStyle='#00796b'; ctx.lineWidth=2.6; ctx.stroke(); ctx.lineTo(line.width-10,line.height-10); ctx.lineTo(10,line.height-10); ctx.closePath();
+  const g=ctx.createLinearGradient(0,0,0,line.height); g.addColorStop(0,'rgba(0,191,165,0.12)'); g.addColorStop(1,'rgba(0,191,165,0.02)'); ctx.fillStyle=g; ctx.fill();
+
+  const pie=document.getElementById('pieChart'); const pctx=pie.getContext('2d'); pctx.clearRect(0,0,pie.width,pie.height); pctx.fillStyle='#fff'; pctx.fillRect(0,0,pie.width,pie.height);
+  const total = categories.reduce((s,c)=>s+c.balance,0) || 1; let a=-Math.PI/2; const colors=['#00bfa5','#00796b','#00acc1','#ffb74d','#c58cff'];
+  categories.forEach((c,i)=>{ const slice=(c.balance/total)*(Math.PI*2); pctx.beginPath(); pctx.moveTo(pie.width/2,pie.height/2); pctx.arc(pie.width/2,pie.height/2,Math.min(pie.width,pie.height)/2 - 10, a, a+slice); pctx.closePath(); pctx.fillStyle=colors[i%colors.length]; pctx.fill(); a+=slice; });
+  pctx.fillStyle='#002d26'; pctx.font='12px Poppins, sans-serif'; let ly=16; categories.forEach(c=>{ pctx.fillText(`${c.name} — ₹${c.balance}`, 10, ly); ly+=18; });
+}
+
+/* Add money */
+document.getElementById('btnAddMoney').addEventListener('click', ()=>{
+  categories = loadCats();
+  const names = categories.map((c,i)=> `${i+1}. ${c.name} (₹${c.balance})`).join('\n');
+  const sel = prompt(`Choose category number to add money:\n${names}\nEnter number (e.g. 1)`);
+  if(!sel) return; const idx = parseInt(sel)-1; if(isNaN(idx) || idx<0 || idx>=categories.length){ alert('Invalid selection'); return; }
+  const amt = prompt(`Enter amount to add to ${categories[idx].name} (₹):`); const v = parseFloat(amt);
+  if(isNaN(v) || v<=0){ alert('Invalid amount'); return; }
+  categories[idx].balance += v; saveCats(categories); TTS.speak(`Added ${v} rupees to ${categories[idx].name}. New balance ${categories[idx].balance} rupees.`); renderCategories();
+});
+
+/* ============================
+   Reminders (date + text)
+   ============================ */
+const modalBackdrop = document.getElementById('modalBackdrop');
+const reminderDateInput = document.getElementById('reminderDate');
+const reminderTextInput = document.getElementById('reminderText');
+document.getElementById('btnSetReminder').addEventListener('click', ()=>{ reminderDateInput.value=''; reminderTextInput.value=''; modalBackdrop.style.display='flex'; modalBackdrop.setAttribute('aria-hidden','false'); });
+document.getElementById('reminderCancel').addEventListener('click', ()=>{ modalBackdrop.style.display='none'; modalBackdrop.setAttribute('aria-hidden','true'); });
+document.getElementById('reminderSave').addEventListener('click', ()=>{
+  const dateVal = reminderDateInput.value; const textVal = reminderTextInput.value.trim();
+  if(!dateVal){ alert('Please choose a date'); return; } if(!textVal){ alert('Please enter reminder text'); return; }
+  const raw = localStorage.getItem('gv_reminders_v92') || '[]'; const arr = JSON.parse(raw);
+  arr.push({ date: dateVal, text: textVal }); localStorage.setItem('gv_reminders_v92', JSON.stringify(arr));
+  modalBackdrop.style.display='none'; modalBackdrop.setAttribute('aria-hidden','true'); const d = new Date(dateVal);
+  TTS.speak(`Reminder set for ${d.toLocaleDateString()}. ${textVal}`); renderRemindersList();
+});
+function renderRemindersList(){
+  const raw = localStorage.getItem('gv_reminders_v92') || '[]'; const arr = JSON.parse(raw);
+  const el = document.getElementById('remindersList'); el.innerHTML=''; if(!arr.length){ el.innerHTML='<div style="color:#666;margin-top:8px">No reminders</div>'; return; }
+  arr.forEach(r => { const d=new Date(r.date); const row=document.createElement('div'); row.style.marginTop='8px'; row.innerText = `${d.toDateString()} — ${r.text}`; el.appendChild(row); });
+}
+
+/* initial render */
+renderCategories(); renderCharts(); renderRemindersList();
+
+/* cleanup camera on unload */
+window.addEventListener('beforeunload', ()=> { try{ cameraStream && cameraStream.getTracks().forEach(t=>t.stop()); }catch(e){} });
+
+/* expose helpers for debugging */
+window.GuardianVault = { singleTapScan, addLastScannedToCart, removeLastFromCart, cartTotal, finalizeCartDoubleTap, showPage };
+</script>
+</body>
+</html>
